@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Merchant {
+  id            String         @id @default(uuid())
+  name          String
+  email         String         @unique
+  storeName     String
+  currency      String         @default("INR")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  products      Product[]
+  customers     Customer[]
+  orders        Order[]
+  campaigns     Campaign[]
+  opportunities Opportunity[]
+  auditEvents   AuditEvent[]
+}
+
+model Product {
+  id             String    @id @default(uuid())
+  merchantId     String
+  name           String
+  price          Float
+  costPrice      Float
+  marginPercent  Float
+  category       String
+  stock          Int
+  salesCount     Int       @default(0)
+  conversionRate Float     @default(0.0)
+  description    String?
+  attributesJson String?   // Machine readable JSON for AI Buyer (use_case, gender, tags)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  merchant       Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orders         Order[]
+}
+
+model Customer {
+  id               String    @id @default(uuid())
+  merchantId       String
+  name             String
+  email            String
+  phone            String?
+  segment          String    // Returning, High Value, Churn Risk, Cross-sell Eligible
+  totalSpent       Float     @default(0.0)
+  ordersCount      Int       @default(0)
+  lastPurchaseDate DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  merchant         Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  orders           Order[]
+}
+
+model Order {
+  id              String    @id @default(uuid())
+  merchantId      String
+  customerId      String?
+  productId       String?
+  amount          Float
+  status          String    // created, paid, failed, cancelled
+  razorpayOrderId String?
+  paymentLinkId   String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  merchant        Merchant  @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  product         Product?  @relation(fields: [productId], references: [id])
+  payments        Payment[]
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  orderId           String?
+  paymentLinkId     String?
+  razorpayPaymentId String?
+  amount            Float
+  status            String   // created, issued, attempted, paid, failed
+  method            String?  // card, upi, netbanking
+  mode              String   @default("MOCK") // MOCK or TEST
+  createdAt         DateTime @default(now())
+  order             Order?   @relation(fields: [orderId], references: [id])
+}
+
+model Campaign {
+  id                 String   @id @default(uuid())
+  merchantId         String
+  name               String
+  status             String   // Draft, Active, Paused, Completed
+  targetAudience     String
+  discountPercent    Float
+  maxBudget          Float
+  maxRedemptions     Int
+  currentRedemptions Int      @default(0)
+  reach              Int      @default(0)
+  conversions        Int      @default(0)
+  revenueGenerated   Float    @default(0.0)
+  aov                Float    @default(0.0)
+  roi                Float    @default(0.0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  merchant           Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
+
+model Opportunity {
+  id                  String   @id @default(uuid())
+  merchantId          String
+  title               String
+  category            String   // Cross-Sell, Checkout Recovery, High-Margin Boost
+  description         String
+  potentialRevenueMin Float
+  potentialRevenueMax Float
+  confidence          Float
+  evidenceJson        String   // JSON string of evidence/metrics
+  aiReasoning         String
+  status              String   @default("ACTIVE") // ACTIVE, EXECUTED, DISMISSED
+  actionPrepared      Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  merchant            Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
+
+model AgentAction {
+  id              String   @id @default(uuid())
+  merchantId      String
+  opportunityId   String?
+  actionType      String   // CREATE_PAYMENT_FLOW, CREATE_CAMPAIGN, ADJUST_PRICE
+  parametersJson  String   // JSON parameters
+  riskLevel       String   // LOW, MEDIUM, HIGH
+  status          String   // PROPOSED, APPROVED, REJECTED, EXECUTED, FAILED
+  idempotencyKey  String   @unique
+  razorpayRef     String?
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid())
+  merchantId     String
+  timestamp      DateTime @default(now())
+  actor          String   // AI Agent, Merchant, Razorpay System, Policy Engine
+  action         String
+  reason         String
+  inputJson      String?
+  outputJson     String?
+  status         String   // SUCCESS, BLOCKED, FAILED, PENDING
+  riskLevel      String   @default("LOW") // LOW, MEDIUM, HIGH
+  approvalStatus String?  // AUTOMATIC, MANUALLY_APPROVED, MANUALLY_REJECTED
+  apiReference   String?
+  merchant       Merchant @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+}
