@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Header } from "@/components/header/Header";
 import { ApprovalGateModal, ApprovalActionPayload } from "@/components/approval/ApprovalGateModal";
-import { Bot, Send, User, Sparkles, ShieldCheck, Zap, RefreshCw } from "lucide-react";
+import { Bot, Send, User, Sparkles, ShieldCheck, RefreshCw, Zap } from "lucide-react";
 
 interface Message {
   id: string;
@@ -18,6 +18,13 @@ interface Message {
   action?: any;
   timestamp: string;
 }
+
+const PRESET_PROMPTS = [
+  "Why did my revenue drop this week?",
+  "Find cross-sell opportunities for shoes",
+  "Analyze high-margin product performance",
+  "Which customers are at risk of churning?",
+];
 
 export default function AgentPage() {
   const [messages, setMessages] = useState<Message[]>([
@@ -92,42 +99,51 @@ export default function AgentPage() {
 
   return (
     <div className="-m-8 min-h-screen bg-[#09090B] flex flex-col">
+      {/* Background orb */}
+      <div className="fixed bottom-0 left-60 w-[400px] h-[400px] pointer-events-none overflow-hidden opacity-20">
+        <div className="absolute bottom-[-150px] left-[-100px] w-[350px] h-[350px] rounded-full bg-gradient-radial from-indigo-600/30 to-transparent blur-3xl" />
+      </div>
+
       <Header />
 
-      <div className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col justify-between space-y-4">
+      <div className="flex-1 max-w-4xl w-full mx-auto p-6 flex flex-col gap-4">
         {/* Agent Info Subheader */}
-        <div className="bg-[#121215] border border-[#27272A] p-3.5 rounded-xl flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2.5">
-            <Bot className="w-4 h-4 text-blue-400" />
-            <span className="font-semibold text-zinc-100">RazorGrowth Revenue Agent</span>
-            <span className="text-zinc-600">•</span>
-            <span className="text-zinc-400">12 Bounded Tools Active</span>
+        <div className="animate-fade-in-up bg-gradient-to-r from-blue-950/30 via-[#121215] to-[#121215] border border-blue-900/30 p-3.5 rounded-xl flex items-center justify-between text-xs relative overflow-hidden">
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+              <Bot className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="font-bold text-zinc-100">RazorGrowth Revenue Agent</p>
+              <p className="text-zinc-500 text-[10px] mt-0.5">12 Bounded Tools Active</p>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5 text-zinc-400">
+          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] bg-emerald-500/8 border border-emerald-500/20 rounded-full px-2.5 py-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
             <span>Policy Engine Enforced</span>
           </div>
         </div>
 
         {/* Chat Messages Window */}
-        <div className="flex-1 bg-[#121215] border border-[#27272A] rounded-xl p-5 space-y-5 overflow-y-auto max-h-[62vh]">
-          {messages.map((msg) => (
+        <div className="flex-1 bg-[#121215] border border-[#27272A] rounded-2xl p-5 space-y-5 overflow-y-auto max-h-[60vh]">
+          {messages.map((msg, idx) => (
             <div
               key={msg.id}
-              className={`flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+              className={`animate-fade-in-up flex gap-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
             >
               {msg.sender === "agent" && (
-                <div className="w-7 h-7 rounded-lg bg-blue-600/10 border border-blue-600/20 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20 border border-blue-500/25 flex items-center justify-center text-blue-400 shrink-0 mt-0.5">
                   <Sparkles className="w-3.5 h-3.5" />
                 </div>
               )}
 
               <div className={`space-y-2 max-w-xl ${msg.sender === "user" ? "items-end" : "items-start"}`}>
                 <div
-                  className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                  className={`p-3.5 rounded-2xl text-xs leading-relaxed ${
                     msg.sender === "user"
-                      ? "bg-zinc-800 text-zinc-100 font-medium rounded-tr-none"
-                      : "bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-none"
+                      ? "bg-gradient-to-br from-blue-600/20 to-indigo-600/20 border border-blue-800/30 text-zinc-100 font-medium rounded-tr-sm"
+                      : "bg-zinc-900/80 border border-zinc-800/80 text-zinc-200 rounded-tl-sm"
                   }`}
                 >
                   <p className="whitespace-pre-wrap">{msg.text}</p>
@@ -135,37 +151,30 @@ export default function AgentPage() {
 
                 {/* Metrics Pill Grid */}
                 {msg.metrics && (
-                  <div className="grid grid-cols-4 gap-2 bg-zinc-950 p-2.5 rounded-lg border border-zinc-800 text-[11px]">
-                    <div>
-                      <p className="text-zinc-500">Est. Impact</p>
-                      <p className="font-semibold text-emerald-400">{msg.metrics.impact}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500">Confidence</p>
-                      <p className="font-semibold text-amber-400">{msg.metrics.confidence}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500">Risk</p>
-                      <p className="font-semibold text-zinc-300">{msg.metrics.risk}</p>
-                    </div>
-                    <div>
-                      <p className="text-zinc-500">Max Budget</p>
-                      <p className="font-semibold text-zinc-300">{msg.metrics.maxBudget}</p>
-                    </div>
+                  <div className="grid grid-cols-4 gap-2 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800 text-[11px]">
+                    {[
+                      { label: "Est. Impact", value: msg.metrics.impact, color: "text-emerald-400" },
+                      { label: "Confidence", value: msg.metrics.confidence, color: "text-amber-400" },
+                      { label: "Risk", value: msg.metrics.risk, color: "text-zinc-300" },
+                      { label: "Max Budget", value: msg.metrics.maxBudget, color: "text-zinc-300" },
+                    ].map((m) => (
+                      <div key={m.label}>
+                        <p className="text-zinc-600">{m.label}</p>
+                        <p className={`font-bold mt-0.5 ${m.color}`}>{m.value}</p>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 {/* Action Card trigger */}
                 {msg.action && (
-                  <div className="bg-zinc-900 border border-zinc-800 p-3.5 rounded-lg space-y-2.5 text-xs">
+                  <div className="bg-zinc-900/80 border border-zinc-800 p-3.5 rounded-xl space-y-2.5 text-xs">
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className="font-semibold text-amber-400 uppercase tracking-wider">
-                        Proposed Action
-                      </span>
-                      <span className="text-emerald-400 font-medium">{msg.action.expectedRevenue}</span>
+                      <span className="font-black text-amber-400 uppercase tracking-wider">Proposed Action</span>
+                      <span className="text-emerald-400 font-bold">{msg.action.expectedRevenue}</span>
                     </div>
-                    <p className="font-semibold text-zinc-100">{msg.action.productName}</p>
-                    <p className="text-zinc-400 leading-normal text-[11px]">{msg.action.why}</p>
+                    <p className="font-bold text-zinc-100">{msg.action.productName}</p>
+                    <p className="text-zinc-500 leading-relaxed text-[11px]">{msg.action.why}</p>
                     <div className="flex gap-2 pt-1">
                       <button
                         onClick={() =>
@@ -184,22 +193,22 @@ export default function AgentPage() {
                             risk: msg.action.risk,
                           })
                         }
-                        className="px-3.5 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-black font-semibold text-xs transition-colors shadow-sm"
+                        className="btn-shimmer px-4 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs transition-all duration-200 shadow-md shadow-blue-600/20"
                       >
                         Prepare Action
                       </button>
-                      <button className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs transition-colors">
+                      <button className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-400 text-xs transition-colors border border-zinc-700">
                         Ignore
                       </button>
                     </div>
                   </div>
                 )}
 
-                <span className="text-[10px] text-zinc-600 block px-1">{msg.timestamp}</span>
+                <span className="text-[10px] text-zinc-700 block px-1">{msg.timestamp}</span>
               </div>
 
               {msg.sender === "user" && (
-                <div className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
+                <div className="w-8 h-8 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
                   <User className="w-3.5 h-3.5" />
                 </div>
               )}
@@ -207,7 +216,7 @@ export default function AgentPage() {
           ))}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-xs text-blue-400">
+            <div className="flex items-center gap-2.5 text-xs text-blue-400 bg-blue-500/5 border border-blue-900/30 rounded-xl px-4 py-3 w-fit">
               <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               <span>Analyzing sales metrics...</span>
             </div>
@@ -216,25 +225,17 @@ export default function AgentPage() {
         </div>
 
         {/* Preset Prompt Buttons */}
-        <div className="flex items-center gap-2 overflow-x-auto">
-          <button
-            onClick={() => handleSendMessage("Why did my revenue drop this week?")}
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs transition-colors whitespace-nowrap"
-          >
-            Why did my revenue drop this week?
-          </button>
-          <button
-            onClick={() => handleSendMessage("Find cross-sell opportunities for shoes")}
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs transition-colors whitespace-nowrap"
-          >
-            Find cross-sell opportunities for shoes
-          </button>
-          <button
-            onClick={() => handleSendMessage("Analyze high-margin product performance")}
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs transition-colors whitespace-nowrap"
-          >
-            Analyze high-margin product performance
-          </button>
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <Zap className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
+          {PRESET_PROMPTS.map((prompt) => (
+            <button
+              key={prompt}
+              onClick={() => handleSendMessage(prompt)}
+              className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 hover:border-zinc-700 text-xs transition-all duration-200 whitespace-nowrap"
+            >
+              {prompt}
+            </button>
+          ))}
         </div>
 
         {/* Input Bar */}
@@ -250,12 +251,12 @@ export default function AgentPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask AI agent about sales, cross-sells, or campaign preparation..."
-            className="w-full bg-[#121215] border border-[#27272A] focus:border-zinc-500 rounded-xl px-4 py-3 text-xs text-zinc-100 placeholder-zinc-500 outline-none pr-12 transition-colors"
+            className="w-full bg-[#121215] border border-[#27272A] focus:border-blue-800/60 focus:ring-1 focus:ring-blue-900/30 rounded-2xl px-5 py-3.5 text-xs text-zinc-100 placeholder-zinc-600 outline-none pr-14 transition-all duration-200"
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="absolute right-2 p-2 rounded-lg bg-zinc-100 hover:bg-white text-black font-bold disabled:opacity-30 transition-colors"
+            className="absolute right-2 p-2.5 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold disabled:opacity-30 transition-all duration-200 shadow-md shadow-blue-600/20"
           >
             <Send className="w-3.5 h-3.5" />
           </button>
